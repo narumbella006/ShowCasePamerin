@@ -1,0 +1,19 @@
+[phases.setup]
+nixPkgs = ["php83", "php83Packages.composer", "nodejs_20"]
+
+[phases.install]
+cmds = [
+    "composer install --no-dev --optimize-autoloader --no-interaction",
+    "npm ci"
+]
+
+[phases.build]
+cmds = [
+    "npm run build"
+]
+
+[start]
+# storage:link dijalankan tiap start (bukan cuma sekali) karena symlink-nya
+# ada di public/ yang ikut ter-rebuild tiap deploy, sedangkan target-nya
+# (storage/app/public) ada di Railway Volume yang persistent.
+cmd = "php artisan migrate --force && (php artisan storage:link || true) && php artisan config:cache && php artisan serve --host 0.0.0.0 --port $PORT"

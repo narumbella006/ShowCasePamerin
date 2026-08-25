@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../js/**/*.jsx';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Warna identitas Politeknik Caltex Riau.
+       Midnight Green (Pantone 548c) #004B5F — warna utama.
+       Pigment Red (Pantone 1778c) #EE152A — aksen & tindakan merusak.
+       Skala di bawah diturunkan dari kedua warna itu supaya tetap punya
+       tingkat terang yang cukup untuk latar, border, dan teks. */
+    --color-pcr-50: #eff7f9;
+    --color-pcr-100: #d6eaef;
+    --color-pcr-200: #add5df;
+    --color-pcr-300: #7bb8c8;
+    --color-pcr-400: #4593aa;
+    --color-pcr-500: #1e7189;
+    --color-pcr-600: #004b5f;
+    --color-pcr-700: #003e4f;
+    --color-pcr-800: #00313e;
+    --color-pcr-900: #00252e;
+
+    --color-pcrred-50: #fef2f3;
+    --color-pcrred-100: #fde3e5;
+    --color-pcrred-200: #fbc7cc;
+    --color-pcrred-300: #f89aa3;
+    --color-pcrred-400: #f35a6a;
+    --color-pcrred-500: #ee152a;
+    --color-pcrred-600: #d40e22;
+    --color-pcrred-700: #b00a1b;
+    --color-pcrred-800: #8c0916;
+}
+
+@keyframes marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+    animation-play-state: paused;
+}

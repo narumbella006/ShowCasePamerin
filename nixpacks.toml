@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ["php83", "php83Packages.composer", "nodejs_20"]
+# Harus PHP 8.4, bukan 8.3. composer.lock dibuat di mesin dengan PHP 8.4
+# sehingga mengunci Symfony 8.1.x yang mensyaratkan php >= 8.4.1. Menurunkan
+# ke 8.3 membuat `composer install` gagal memverifikasi lock file.
+nixPkgs = ["php84", "php84Packages.composer", "nodejs_20"]
 
 [phases.install]
 cmds = [

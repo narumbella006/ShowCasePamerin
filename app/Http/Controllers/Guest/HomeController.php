@@ -79,7 +79,9 @@ class HomeController extends Controller
             ->whereNotNull('poster_path')
             ->latest('published_at')
             ->limit(12)
-            ->get(['id', 'slug', 'title', 'poster_path'])
+            // poster_thumb_path wajib ikut di-select; kalau tidak, atributnya
+            // null dan posterThumbUrl() mundur ke poster asli yang berukuran penuh.
+            ->get(['id', 'slug', 'title', 'poster_path', 'poster_thumb_path'])
             ->map(fn (Product $product) => [
                 'image' => $product->posterThumbUrl(),
                 'title' => $product->title,

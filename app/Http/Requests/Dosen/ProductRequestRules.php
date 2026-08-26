@@ -22,7 +22,6 @@ trait ProductRequestRules
             'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'demo_link' => ['nullable', 'url', 'max:255'],
             'video_link' => ['nullable', 'url', 'max:255'],
-            'github_link' => ['nullable', 'url', 'max:255'],
 
             'students' => ['array'],
             'students.*.name' => ['required', 'string', 'max:255'],
@@ -73,7 +72,6 @@ trait ProductRequestRules
             'poster' => 'Poster',
             'demo_link' => 'Link demo',
             'video_link' => 'Link video',
-            'github_link' => 'Link GitHub',
             'tags' => 'Teknologi',
             'dosen_ids' => 'Dosen pembimbing',
         ];

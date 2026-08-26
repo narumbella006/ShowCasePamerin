@@ -15,7 +15,6 @@ export default function Edit({ product, options }) {
         remove_poster: false,
         demo_link: product.demo_link ?? '',
         video_link: product.video_link ?? '',
-        github_link: product.github_link ?? '',
         students: product.students ?? [],
         tags: product.tags ?? [],
         dosen_ids: product.dosen_ids ?? [],

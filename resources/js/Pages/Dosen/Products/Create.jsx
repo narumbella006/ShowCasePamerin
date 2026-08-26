@@ -16,7 +16,6 @@ export default function Create({ options }) {
         poster: null,
         demo_link: '',
         video_link: '',
-        github_link: '',
         students: [{ name: '', nim: '', role: '' }],
         tags: [],
         dosen_ids: [],

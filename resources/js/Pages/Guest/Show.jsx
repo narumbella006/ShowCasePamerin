@@ -174,7 +174,7 @@ export default function Show({ product }) {
                         </div>
                     )}
 
-                    {(product.demo_link || product.video_link || product.github_link) && (
+                    {(product.demo_link || product.video_link) && (
                         <div className="flex flex-wrap gap-3 border-t border-neutral-200 pt-6">
                             {product.demo_link && (
                                 <a
@@ -200,19 +200,6 @@ export default function Show({ product }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
                                     </svg>
                                     Video Demo
-                                </a>
-                            )}
-                            {product.github_link && (
-                                <a
-                                    href={product.github_link}
-                                    target="_blank"
-                                    rel="noopener"
-                                    className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition-all hover:bg-neutral-50"
-                                >
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-                                    </svg>
-                                    Repositori
                                 </a>
                             )}
                         </div>

@@ -25,7 +25,6 @@ class ProductController extends Controller
                 'poster_url' => $product->posterUrl(),
                 'demo_link' => $product->demo_link,
                 'video_link' => $product->video_link,
-                'github_link' => $product->github_link,
                 'category' => $product->category?->name,
                 'course' => $product->course?->code ?? $product->course?->name,
                 'students' => $product->students->map(fn ($s) => [

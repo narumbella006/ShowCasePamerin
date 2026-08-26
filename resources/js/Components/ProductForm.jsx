@@ -188,7 +188,7 @@ export default function ProductForm({
                         </div>
                     </Field>
 
-                    <div className="grid gap-5 sm:grid-cols-3">
+                    <div className="grid gap-5 sm:grid-cols-2">
                         <Field label="Link demo" error={errors.demo_link}>
                             <input
                                 type="url"
@@ -204,15 +204,6 @@ export default function ProductForm({
                                 className={inputClass}
                                 value={data.video_link ?? ''}
                                 onChange={(e) => setData('video_link', e.target.value)}
-                                placeholder="https://"
-                            />
-                        </Field>
-                        <Field label="Link GitHub" error={errors.github_link}>
-                            <input
-                                type="url"
-                                className={inputClass}
-                                value={data.github_link ?? ''}
-                                onChange={(e) => setData('github_link', e.target.value)}
                                 placeholder="https://"
                             />
                         </Field>

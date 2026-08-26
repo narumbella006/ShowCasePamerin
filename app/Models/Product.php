@@ -22,7 +22,6 @@ use Illuminate\Support\Str;
     'poster_path',
     'demo_link',
     'video_link',
-    'github_link',
     'status',
     'created_by',
     'published_at',

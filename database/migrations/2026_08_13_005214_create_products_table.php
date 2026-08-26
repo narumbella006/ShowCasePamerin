@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('poster_path')->nullable();
             $table->string('demo_link')->nullable();
             $table->string('video_link')->nullable();
-            $table->string('github_link')->nullable();
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft')->index();
             $table->integer('views_count')->default(0);
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();

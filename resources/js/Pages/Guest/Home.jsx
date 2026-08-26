@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import VideoProduk from '@/Components/VideoProduk';
 import Reveal from '@/Components/Reveal';
 import GuestLayout from '@/Layouts/GuestLayout';
 import DepthCarousel from '@/ReactBits/DepthCarousel/DepthCarousel';
@@ -17,6 +18,26 @@ const ROBLOX_MAP = {
     creators: ['Ahmad Yudha Yazril — G19 TI D', 'Rasyid Tarmizi — G20 TI B'],
 };
 
+const RANCANGAN_PA = [
+    {
+        jenis: 'Web',
+        judul: 'Rancang Bangun Sistem Informasi Web untuk Pengelolaan Setoran Minyak Jelantah Menggunakan Metode Agile Kanban pada Bank Jatah Indonesia',
+        mahasiswa: 'Azzam Farras Ruslani',
+    },
+    {
+        jenis: 'Mobile',
+        judul: 'Rancang Bangun Aplikasi Mobile Bank Jatah Indonesia Menggunakan Metode Agile Kanban pada Bank Jatah Indonesia',
+        mahasiswa: 'Tengku Muhammad Hadin Nazmi',
+    },
+];
+
+const FITUR_BANK_JATAH = [
+    'Setor jelantah, saldo langsung masuk',
+    'Pantau tabungan dari aplikasi',
+    'Tukar saldo jadi reward',
+    'Cairkan saldo ke rekening',
+];
+
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
 function isRecentlyPublished(publishedAt) {
@@ -29,6 +50,30 @@ export default function Home({ products, categories, academicYears, tags, stats,
     const [activeShowcase, setActiveShowcase] = useState(null);
     const [showreelOpen, setShowreelOpen] = useState(false);
 
+    // Tanpa preserveScroll, Inertia mengembalikan gulir ke puncak halaman
+    // sehingga pengguna terlempar ke hero setiap ganti halaman atau filter.
+    //
+    // Penggulirannya dijalankan lewat efek, bukan callback onSuccess, karena
+    // onSuccess menyala sebelum React selesai memasang daftar produk yang
+    // baru — posisi section masih posisi lama dan gulirannya meleset.
+    const renderPertama = useRef(true);
+    const tandaHalaman = [
+        products.current_page,
+        filters.search ?? '',
+        filters.category ?? '',
+        filters.academic_year ?? '',
+    ].join('|');
+
+    useEffect(() => {
+        if (renderPertama.current) {
+            renderPertama.current = false;
+
+            return;
+        }
+
+        document.getElementById('produk')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [tandaHalaman]);
+
     const applyFilters = (overrides = {}) => {
         router.get(
             '/',
@@ -38,8 +83,12 @@ export default function Home({ products, categories, academicYears, tags, stats,
                 academic_year: filters.academic_year ?? '',
                 ...overrides,
             },
-            { preserveState: true, replace: true }
+            { preserveState: true, replace: true, preserveScroll: true }
         );
+    };
+
+    const gantiHalaman = (url) => {
+        router.get(url, {}, { preserveState: true, preserveScroll: true });
     };
 
     const noResults = filters.search || filters.category || filters.academic_year;
@@ -211,6 +260,91 @@ export default function Home({ products, categories, academicYears, tags, stats,
                     <p className="font-mono text-[9px] font-bold tracking-widest text-pcrred-500 uppercase sm:text-[10px]">// 03</p>
                     <p className="mt-1 text-xl font-extrabold text-pcr-800 sm:text-3xl">{stats.students}+</p>
                     <p className="mt-1 text-[10px] font-medium leading-tight text-neutral-500 sm:text-sm">Mahasiswa Terlibat</p>
+                </div>
+            </Reveal>
+
+            {/* Rancangan PA — video produk di kanan, dua judul PA di kiri */}
+            <Reveal
+                as="section"
+                className="relative mb-12 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-xl sm:mb-16"
+            >
+                <div className="p-5 sm:p-8 lg:p-10">
+                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,36rem)] lg:items-center lg:gap-12">
+                    <div>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-pcrred-50 px-3 py-1.5 text-[10px] font-bold tracking-wide text-pcrred-600 uppercase sm:text-xs">
+                            Proyek Akhir
+                        </span>
+
+                        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-pcr-800 sm:text-3xl lg:text-4xl">
+                            Inilah Salah Satu Rancangan PA Mahasiswa Teknik Informatika
+                        </h2>
+
+                        <div className="mt-4 h-1.5 w-24 rounded-full bg-pcrred-500" />
+
+                        <p className="mt-5 text-justify text-sm leading-relaxed text-neutral-600 hyphens-auto sm:text-base">
+                            Jutaan liter minyak jelantah dibuang sembarangan setiap hari.{' '}
+                            <strong className="font-semibold text-pcr-800">Bank Jatah Indonesia</strong>{' '}
+                            menjawabnya lewat satu sistem digital yang menghubungkan nasabah, unit bisnis,
+                            dan manajemen pusat secara real-time — berupa aplikasi mobile Android untuk
+                            lapangan dan dasbor web untuk operasional pusat.
+                        </p>
+
+                        <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+                            {FITUR_BANK_JATAH.map((fitur) => (
+                                <li key={fitur} className="flex items-start gap-2 text-sm text-neutral-700">
+                                    <svg
+                                        className="mt-0.5 h-4 w-4 shrink-0 text-pcr-600"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2.5}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                    {fitur}
+                                </li>
+                            ))}
+                        </ul>
+
+                    </div>
+
+                    <div className="w-full">
+                        <VideoProduk
+                            videoId="44_YPLUIk3s"
+                            title="Video Bank Jatah Indonesia"
+                            label="Putar Video Bank Jatah"
+                        />
+                    </div>
+                    </div>
+
+                    <div className="mt-10 space-y-3 border-t border-neutral-200 pt-8">
+                            <p className="font-mono text-[10px] font-bold tracking-widest text-neutral-500 uppercase">
+                                Dua Proyek Akhir dalam satu sistem
+                            </p>
+                            <div className="grid gap-3 lg:grid-cols-2">
+                            {RANCANGAN_PA.map((pa, index) => (
+                                <article
+                                    key={pa.mahasiswa}
+                                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 transition-colors hover:border-pcr-300 hover:bg-pcr-50"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-[10px] font-bold text-pcrred-500">
+                                            // 0{index + 1}
+                                        </span>
+                                        <span className="rounded-full bg-pcr-600 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
+                                            {pa.jenis}
+                                        </span>
+                                    </div>
+                                    <h3 className="mt-2 text-sm leading-snug font-bold text-pcr-800 sm:text-base">
+                                        {pa.judul}
+                                    </h3>
+                                    <p className="mt-1.5 text-xs font-medium text-neutral-500 sm:text-sm">
+                                        {pa.mahasiswa}
+                                    </p>
+                                </article>
+                            ))}
+                            </div>
+                    </div>
                 </div>
             </Reveal>
 
@@ -543,7 +677,7 @@ export default function Home({ products, categories, academicYears, tags, stats,
                         <button
                             key={index}
                             disabled={!link.url}
-                            onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
+                            onClick={() => link.url && gantiHalaman(link.url)}
                             className={`flex min-w-8 items-center justify-center rounded-xl border-2 px-3 py-1.5 text-xs font-semibold transition-all shadow-sm sm:min-w-10 sm:px-4 sm:py-2.5 sm:text-sm ${
                                 link.active
                                     ? 'border-pcr-600 bg-pcr-600 text-white shadow-md'

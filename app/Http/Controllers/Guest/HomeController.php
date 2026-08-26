@@ -43,7 +43,7 @@ class HomeController extends Controller
                 'slug' => $product->slug,
                 'title' => $product->title,
                 'academic_year' => $product->academic_year,
-                'poster_url' => $product->posterUrl(),
+                'poster_url' => $product->posterThumbUrl(),
                 'category' => $product->category?->name,
                 'students' => $product->students->pluck('name'),
                 'published_at' => $product->published_at?->toIso8601String(),
@@ -81,7 +81,7 @@ class HomeController extends Controller
             ->limit(12)
             ->get(['id', 'slug', 'title', 'poster_path'])
             ->map(fn (Product $product) => [
-                'image' => $product->posterUrl(),
+                'image' => $product->posterThumbUrl(),
                 'title' => $product->title,
                 'slug' => $product->slug,
             ])

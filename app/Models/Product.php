@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
     'academic_year',
     'semester',
     'poster_path',
+    'poster_thumb_path',
+    'poster_medium_path',
     'demo_link',
     'video_link',
     'status',
@@ -127,6 +129,27 @@ class Product extends Model
     public function posterUrl(): ?string
     {
         return $this->poster_path ? Storage::disk('public')->url($this->poster_path) : null;
+    }
+
+    /**
+     * URL poster kecil untuk grid dan ubin dekoratif. Produk lama yang belum
+     * punya varian mundur ke poster asli supaya gambarnya tetap muncul.
+     */
+    public function posterThumbUrl(): ?string
+    {
+        return $this->poster_thumb_path
+            ? Storage::disk('public')->url($this->poster_thumb_path)
+            : $this->posterUrl();
+    }
+
+    /**
+     * URL poster ukuran sedang untuk halaman detail.
+     */
+    public function posterMediumUrl(): ?string
+    {
+        return $this->poster_medium_path
+            ? Storage::disk('public')->url($this->poster_medium_path)
+            : $this->posterUrl();
     }
 
     /**

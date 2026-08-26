@@ -22,7 +22,7 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'academic_year' => $product->academic_year,
                 'semester' => $product->semester,
-                'poster_url' => $product->posterUrl(),
+                'poster_url' => $product->posterMediumUrl(),
                 'demo_link' => $product->demo_link,
                 'video_link' => $product->video_link,
                 'category' => $product->category?->name,

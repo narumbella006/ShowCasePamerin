@@ -8,6 +8,7 @@ use App\Http\Requests\Dosen\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Product;
+use App\Services\PosterImageService;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,7 +51,7 @@ class ProductController extends Controller
                 'academic_year' => $product->academic_year,
                 'semester' => $product->semester,
                 'views_count' => $product->views_count,
-                'poster_url' => $product->posterUrl(),
+                'poster_url' => $product->posterThumbUrl(),
                 'category' => $product->category?->name,
                 'course' => $product->course?->code ?? $product->course?->name,
                 'updated_at' => $product->updated_at?->diffForHumans(),
@@ -94,6 +95,7 @@ class ProductController extends Controller
 
             if ($request->hasFile('poster')) {
                 $product->poster_path = $request->file('poster')->store('posters', 'public');
+                $this->terapkanVarianPoster($product);
             }
 
             $product->save();
@@ -131,7 +133,7 @@ class ProductController extends Controller
                 'status' => $product->status,
                 'demo_link' => $product->demo_link,
                 'video_link' => $product->video_link,
-                'poster_url' => $product->posterUrl(),
+                'poster_url' => $product->posterThumbUrl(),
                 'students' => $product->students
                     ->map(fn ($s) => ['name' => $s->name, 'nim' => $s->nim, 'role' => $s->role])
                     ->values(),
@@ -161,9 +163,12 @@ class ProductController extends Controller
             if ($request->hasFile('poster')) {
                 $this->deletePoster($product);
                 $product->poster_path = $request->file('poster')->store('posters', 'public');
+                $this->terapkanVarianPoster($product);
             } elseif ($request->boolean('remove_poster')) {
                 $this->deletePoster($product);
                 $product->poster_path = null;
+                $product->poster_thumb_path = null;
+                $product->poster_medium_path = null;
             }
 
             $product->save();
@@ -235,5 +240,23 @@ class ProductController extends Controller
         if ($product->poster_path) {
             Storage::disk('public')->delete($product->poster_path);
         }
+
+        app(PosterImageService::class)->hapusVarian([
+            $product->poster_thumb_path,
+            $product->poster_medium_path,
+        ]);
+    }
+
+    /**
+     * Bikin turunan kecil untuk poster yang baru diunggah. Kalau GD tidak
+     * tersedia di server, varian bernilai null dan tampilan mundur ke poster
+     * asli — tidak ada yang rusak, hanya tidak hemat.
+     */
+    protected function terapkanVarianPoster(Product $product): void
+    {
+        $varian = app(PosterImageService::class)->buatVarian($product->poster_path);
+
+        $product->poster_thumb_path = $varian['thumb'];
+        $product->poster_medium_path = $varian['medium'];
     }
 }

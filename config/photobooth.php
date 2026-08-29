@@ -21,10 +21,26 @@ return [
     'maks_kb' => (int) env('PHOTOBOOTH_MAKS_KB', 8192),
 
     /*
-    | Foto lebih tua dari sekian hari dibersihkan sendiri saat ada unggahan
-    | baru, supaya Railway Volume tidak penuh pelan-pelan. Isi 0 untuk
-    | menyimpan selamanya.
+    |--------------------------------------------------------------------------
+    | Foto bersifat sementara
+    |--------------------------------------------------------------------------
+    |
+    | Server ini cuma tempat penitipan sebentar, bukan galeri. Foto dihapus
+    | begitu selesai diunduh pengunjung, dan yang tidak pernah diunduh ikut
+    | disapu setelah `simpan_menit`.
+    |
+    | Konsekuensinya: pengunjung hanya punya satu kesempatan mengunduh. Kalau di
+    | lapangan itu terlalu berisiko (unduhan putus, mau simpan ulang di iPhone),
+    | matikan lewat PHOTOBOOTH_HAPUS_SETELAH_UNDUH=false — foto lalu bertahan
+    | sampai batas `simpan_menit`.
+    |
     */
-    'simpan_hari' => (int) env('PHOTOBOOTH_SIMPAN_HARI', 30),
+
+    'hapus_setelah_unduh' => filter_var(
+        env('PHOTOBOOTH_HAPUS_SETELAH_UNDUH', true),
+        FILTER_VALIDATE_BOOL,
+    ),
+
+    'simpan_menit' => (int) env('PHOTOBOOTH_SIMPAN_MENIT', 60),
 
 ];

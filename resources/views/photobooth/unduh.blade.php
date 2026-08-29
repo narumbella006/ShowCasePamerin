@@ -40,6 +40,10 @@
         .baris { display: flex; gap: 10px; flex-wrap: wrap }
         .baris > * { flex: 1 1 180px }
         b { color: #e6e8f2 }
+        .ingat {
+            margin: 16px 0 0; padding: 11px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55;
+            background: rgba(168, 132, 52, .14); border: 1px solid #6d5722; color: #f0cd85;
+        }
     </style>
 </head>
 <body>
@@ -57,6 +61,13 @@
             Buka gambar penuh
         </a>
     </div>
+
+    @if (config('photobooth.hapus_setelah_unduh'))
+        <p class="ingat">
+            ⚠ Foto ini <b>langsung dihapus dari server setelah diunduh</b>, jadi pastikan unduhannya selesai.
+            Kalau gagal, minta panitia mengirim ulang.
+        </p>
+    @endif
 
     <p class="kecil" style="margin-top:18px">
         Di iPhone, kalau tombol unduh tidak jalan: tekan lama gambarnya lalu pilih <b>Add to Photos</b>.<br>

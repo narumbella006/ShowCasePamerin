@@ -7,12 +7,16 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Titipan hasil photobooth acara. Aplikasi photobooth berjalan di laptop
  * panitia, lalu mengirim foto ke sini supaya pengunjung bisa mengunduhnya
  * lewat QR dari HP mana pun — tidak perlu satu WiFi dengan laptop.
+ *
+ * Sifatnya penitipan sementara, bukan galeri: foto dihapus begitu selesai
+ * diunduh, dan yang tidak pernah diunduh disapu setelah beberapa menit.
  */
 class PhotoboothController extends Controller
 {
@@ -61,11 +65,23 @@ class PhotoboothController extends Controller
         return Storage::disk('public')->response($this->berkas($kode));
     }
 
-    public function unduh(string $kode): StreamedResponse
+    public function unduh(string $kode): BinaryFileResponse
     {
         $this->pastikanAda($kode);
 
-        return Storage::disk('public')->download($this->berkas($kode), "photobooth-{$kode}.jpg");
+        // Sengaja pakai response()->download() dan bukan Storage::download():
+        // hanya BinaryFileResponse yang bisa menghapus berkasnya sendiri setelah
+        // isinya selesai terkirim ke pengunjung.
+        $respons = response()->download(
+            Storage::disk('public')->path($this->berkas($kode)),
+            "photobooth-{$kode}.jpg",
+        );
+
+        if (config('photobooth.hapus_setelah_unduh')) {
+            $respons->deleteFileAfterSend();
+        }
+
+        return $respons;
     }
 
     protected function berkas(string $kode): string
@@ -79,11 +95,20 @@ class PhotoboothController extends Controller
         abort_if(blank(config('photobooth.token')), 404);
     }
 
+    /**
+     * Foto yang sudah diunduh dan foto kedaluwarsa sama-sama sudah tidak ada,
+     * jadi keduanya dijawab satu halaman yang menjelaskan sebabnya — jauh lebih
+     * berguna buat pengunjung daripada halaman 404 biasa.
+     */
     protected function pastikanAda(string $kode): void
     {
         $this->pastikanAktif();
 
-        abort_unless(Storage::disk('public')->exists($this->berkas($kode)), 404, 'Foto tidak ditemukan.');
+        if (! Storage::disk('public')->exists($this->berkas($kode))) {
+            abort(response()->view('photobooth.hilang', [
+                'menit' => (int) config('photobooth.simpan_menit'),
+            ], 404));
+        }
     }
 
     protected function kodeBaru(): string
@@ -98,19 +123,20 @@ class PhotoboothController extends Controller
     }
 
     /**
-     * Dijalankan menumpang unggahan baru, bukan lewat scheduler, supaya tidak
-     * perlu proses cron terpisah di Railway.
+     * Menyapu foto yang tidak pernah diunduh. Dijalankan menumpang unggahan
+     * baru, bukan lewat scheduler, supaya tidak perlu proses cron terpisah di
+     * Railway.
      */
     protected function bersihkanFotoLama(): void
     {
-        $hari = (int) config('photobooth.simpan_hari');
+        $menit = (int) config('photobooth.simpan_menit');
 
-        if ($hari <= 0) {
+        if ($menit <= 0) {
             return;
         }
 
         $disk = Storage::disk('public');
-        $batas = now()->subDays($hari)->getTimestamp();
+        $batas = now()->subMinutes($menit)->getTimestamp();
 
         foreach ($disk->files(self::DIREKTORI) as $berkas) {
             if (Str::endsWith($berkas, '.jpg') && $disk->lastModified($berkas) < $batas) {

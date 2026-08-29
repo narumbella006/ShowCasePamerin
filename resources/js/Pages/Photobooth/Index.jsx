@@ -233,19 +233,24 @@ export default function PhotoboothIndex({ frame, area, maksFoto = 4, csrf }) {
         setFase('siap');
     }, []);
 
+    const unduhSatu = useCallback((foto, urutan) => {
+        const a = document.createElement('a');
+        a.href = foto.url;
+        a.download = `photobooth-informatics-${foto.id}-${urutan}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }, []);
+
     const unduhSemua = useCallback(async () => {
-        const cap = Date.now();
         for (let i = 0; i < koleksi.length; i += 1) {
-            const a = document.createElement('a');
-            a.href = koleksi[i].url;
-            a.download = `photobooth-informatics-${cap}-${i + 1}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            // jeda kecil: sebagian browser mengabaikan unduhan beruntun tanpa spasi
+            unduhSatu(koleksi[i], i + 1);
+            // Jeda kecil: sebagian browser mengabaikan unduhan beruntun tanpa
+            // spasi, dan browser juga meminta izin "unduh banyak berkas" sekali.
+            // Kalau izinnya ditolak, tombol unduh di tiap foto tetap jalan.
             await new Promise((r) => setTimeout(r, 400));
         }
-    }, [koleksi]);
+    }, [koleksi, unduhSatu]);
 
     const buatQr = useCallback(async () => {
         if (!koleksi.length || sibuk) return;
@@ -382,8 +387,18 @@ export default function PhotoboothIndex({ frame, area, maksFoto = 4, csrf }) {
                                     </span>
                                     <button
                                         type="button"
+                                        onClick={() => unduhSatu(f, i + 1)}
+                                        aria-label={`Unduh foto ${i + 1}`}
+                                        title="Unduh foto ini"
+                                        className="absolute right-1 bottom-1 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-xs font-bold text-white transition-colors hover:bg-pcr-700"
+                                    >
+                                        ⬇
+                                    </button>
+                                    <button
+                                        type="button"
                                         onClick={() => buangFoto(f.id)}
                                         aria-label={`Hapus foto ${i + 1}`}
+                                        title="Hapus foto ini"
                                         className="absolute top-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-sm font-bold text-white transition-colors hover:bg-pcrred-600"
                                     >
                                         ×
@@ -421,9 +436,9 @@ export default function PhotoboothIndex({ frame, area, maksFoto = 4, csrf }) {
                                 Scan pakai kamera HP — {qr.jumlah} foto
                             </p>
                             <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                                Halaman yang terbuka berisi semua foto sesi ini, lengkap dengan tombol unduh
-                                sekaligus. Foto <b>langsung dihapus dari server</b> begitu selesai diunduh, dan
-                                hilang sendiri setelah 60 menit kalau tidak diunduh.
+                                Halaman yang terbuka berisi semua foto sesi ini, masing-masing dengan tombol
+                                unduhnya sendiri. Tiap foto <b>langsung dihapus dari server</b> begitu selesai
+                                diunduh, dan hilang sendiri setelah 60 menit kalau tidak diunduh.
                             </p>
                             <p className="mt-2 font-mono text-xs break-all text-pcr-700">{qr.url}</p>
                         </div>

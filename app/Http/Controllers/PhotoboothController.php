@@ -11,12 +11,11 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use ZipArchive;
 
 /**
  * Photobooth acara. Pengunjung berfoto lewat halaman /photobooth di perangkat
- * stan, mengumpulkan beberapa jepretan, lalu mengambil semuanya sekaligus —
- * langsung diunduh di situ, atau dipindai QR-nya memakai HP masing-masing.
+ * stan, mengumpulkan beberapa jepretan, lalu mengunduhnya — langsung di situ,
+ * atau dari HP masing-masing lewat QR.
  *
  * Server ini hanya penitipan sementara, bukan galeri: foto dihapus begitu
  * selesai diunduh, dan yang tidak pernah diunduh disapu setelah beberapa menit.
@@ -74,7 +73,6 @@ class PhotoboothController extends Controller
         return view('photobooth.unduh', [
             'kode' => $kode,
             'indeks' => $this->pastikanAda($kode),
-            'bisaZip' => $this->bisaZip(),
         ]);
     }
 
@@ -98,39 +96,6 @@ class PhotoboothController extends Controller
         }
 
         return $respons;
-    }
-
-    /** Seluruh foto satu sesi dalam satu berkas zip. */
-    public function semua(string $kode): BinaryFileResponse
-    {
-        $indeks = $this->pastikanAda($kode);
-
-        abort_unless($this->bisaZip(), 404);
-
-        $disk = Storage::disk('public');
-        $berkasZip = tempnam(sys_get_temp_dir(), 'photobooth');
-
-        $zip = new ZipArchive;
-        abort_unless($zip->open($berkasZip, ZipArchive::OVERWRITE) === true, 500, 'Gagal menyiapkan zip.');
-
-        foreach ($indeks as $i) {
-            $zip->addFile($disk->path($this->berkasKe($kode, $i)), sprintf('photobooth-%s-%d.jpg', $kode, $i));
-        }
-
-        $zip->close();
-
-        // Isinya sudah aman di dalam zip yang sedang dikirim, jadi sesinya boleh
-        // dibereskan sekarang.
-        if (config('photobooth.hapus_setelah_unduh')) {
-            $this->hapusSesi($kode);
-        }
-
-        return response()->download($berkasZip, "photobooth-{$kode}.zip")->deleteFileAfterSend();
-    }
-
-    protected function bisaZip(): bool
-    {
-        return class_exists(ZipArchive::class);
     }
 
     /**
@@ -246,13 +211,6 @@ class PhotoboothController extends Controller
             'jumlah' => count($berkas),
             'url' => route('photobooth.tampil', $kode),
         ];
-    }
-
-    protected function hapusSesi(string $kode): void
-    {
-        $disk = Storage::disk('public');
-        $disk->deleteDirectory(self::DIREKTORI.'/'.$kode);
-        $disk->delete(self::DIREKTORI.'/'.$kode.'.jpg');
     }
 
     protected function kodeBaru(): string

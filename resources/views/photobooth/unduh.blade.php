@@ -43,7 +43,6 @@
             padding: 13px; font-size: 15px;
         }
         .tombol:active { transform: translateY(1px) }
-        .utama { margin-bottom: 18px }
         .ingat {
             margin: 16px 0 0; padding: 11px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55;
             background: rgba(168, 132, 52, .14); border: 1px solid #6d5722; color: #f0cd85;
@@ -56,10 +55,8 @@
     <h1>{{ $jumlah > 1 ? "$jumlah foto kamu sudah siap 🎉" : 'Foto kamu sudah siap 🎉' }}</h1>
     <p class="kecil">Informatics · Politeknik Caltex Riau</p>
 
-    @if ($jumlah > 1 && $bisaZip)
-        <div class="utama">
-            <a class="tombol" href="{{ route('photobooth.semua', $kode) }}">⬇ Unduh semua ({{ $jumlah }} foto)</a>
-        </div>
+    @if ($jumlah > 1)
+        <p class="kecil">Unduh fotonya satu per satu lewat tombol di bawah tiap gambar.</p>
     @endif
 
     @foreach ($indeks as $urutan => $i)
@@ -77,10 +74,7 @@
     @if (config('photobooth.hapus_setelah_unduh'))
         <p class="ingat">
             ⚠ Setiap foto <b>langsung dihapus dari server setelah diunduh</b>, jadi pastikan unduhannya
-            selesai. Kalau gagal, minta panitia mengirim ulang.
-            @if ($jumlah > 1 && $bisaZip)
-                Tombol <b>Unduh semua</b> membereskan seluruh foto sesi ini sekaligus.
-            @endif
+            selesai sebelum lanjut ke foto berikutnya. Kalau gagal, minta panitia mengirim ulang.
         </p>
     @endif
 

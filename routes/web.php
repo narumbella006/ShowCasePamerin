@@ -37,7 +37,6 @@ Route::name('photobooth.')->group(function () {
         ->where(['kode' => '[0-9a-z]{4,16}', 'indeks' => '[1-9][0-9]?'])
         ->group(function () {
             Route::get('/', [PhotoboothController::class, 'tampil'])->name('tampil');
-            Route::get('semua', [PhotoboothController::class, 'semua'])->name('semua');
             Route::get('g/{indeks}', [PhotoboothController::class, 'gambar'])->name('gambar');
             Route::get('u/{indeks}', [PhotoboothController::class, 'unduh'])->name('unduh');
         });

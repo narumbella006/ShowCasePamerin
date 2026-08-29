@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
-    <title>Foto Photobooth</title>
+    <title>{{ $jumlah > 1 ? $jumlah.' Foto Photobooth' : 'Foto Photobooth' }}</title>
     {{-- Halaman ini sengaja tidak memakai bundel Inertia/Vite: dibuka pengunjung
          lewat QR di HP, sering dengan sinyal seadanya, jadi cukup HTML polos. --}}
     <style>
@@ -23,7 +23,11 @@
         .kecil { color: #9aa0b4; font-size: 13px; margin: 0 0 20px; line-height: 1.55 }
         .kartu {
             background: #14141f; border: 1px solid #262637; border-radius: 16px;
-            padding: 14px; margin-bottom: 16px;
+            padding: 14px; margin-bottom: 14px;
+        }
+        .nomor {
+            display: inline-block; margin-bottom: 10px; padding: 3px 10px; border-radius: 999px;
+            background: #21212f; color: #aab0c4; font-size: 12px; font-weight: 700;
         }
         img { width: 100%; height: auto; display: block; border-radius: 11px; background: #000 }
         .tombol {
@@ -35,43 +39,53 @@
         }
         .tombol.kedua {
             background: #1e1e2d; color: #cfd3e2; border: 1px solid #303048; box-shadow: none;
+            padding: 13px; font-size: 15px;
         }
         .tombol:active { transform: translateY(1px) }
-        .baris { display: flex; gap: 10px; flex-wrap: wrap }
-        .baris > * { flex: 1 1 180px }
-        b { color: #e6e8f2 }
+        .utama { margin-bottom: 18px }
         .ingat {
             margin: 16px 0 0; padding: 11px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55;
             background: rgba(168, 132, 52, .14); border: 1px solid #6d5722; color: #f0cd85;
         }
+        b { color: #e6e8f2 }
     </style>
 </head>
 <body>
 <div class="bungkus">
-    <h1>Foto kamu sudah siap 🎉</h1>
+    <h1>{{ $jumlah > 1 ? "$jumlah foto kamu sudah siap 🎉" : 'Foto kamu sudah siap 🎉' }}</h1>
     <p class="kecil">Informatics · Politeknik Caltex Riau</p>
 
-    <div class="kartu">
-        <img src="{{ route('photobooth.gambar', $kode) }}" alt="Hasil foto photobooth">
-    </div>
+    @if ($jumlah > 1 && $bisaZip)
+        <div class="utama">
+            <a class="tombol" href="{{ route('photobooth.semua', $kode) }}">⬇ Unduh semua ({{ $jumlah }} foto)</a>
+        </div>
+    @endif
 
-    <div class="baris">
-        <a class="tombol" href="{{ route('photobooth.unduh', $kode) }}">⬇ Unduh Foto</a>
-        <a class="tombol kedua" href="{{ route('photobooth.gambar', $kode) }}" target="_blank" rel="noopener">
-            Buka gambar penuh
-        </a>
-    </div>
+    @for ($i = 1; $i <= $jumlah; $i++)
+        <div class="kartu">
+            @if ($jumlah > 1)
+                <span class="nomor">Foto {{ $i }} dari {{ $jumlah }}</span>
+            @endif
+            <img src="{{ route('photobooth.gambar', [$kode, $i]) }}" alt="Hasil foto photobooth {{ $i }}">
+            <div style="margin-top:12px">
+                <a class="tombol" href="{{ route('photobooth.unduh', [$kode, $i]) }}">⬇ Unduh foto ini</a>
+            </div>
+        </div>
+    @endfor
 
     @if (config('photobooth.hapus_setelah_unduh'))
         <p class="ingat">
-            ⚠ Foto ini <b>langsung dihapus dari server setelah diunduh</b>, jadi pastikan unduhannya selesai.
-            Kalau gagal, minta panitia mengirim ulang.
+            ⚠ Setiap foto <b>langsung dihapus dari server setelah diunduh</b>, jadi pastikan unduhannya
+            selesai. Kalau gagal, minta panitia mengirim ulang.
+            @if ($jumlah > 1 && $bisaZip)
+                Tombol <b>Unduh semua</b> membereskan seluruh foto sesi ini sekaligus.
+            @endif
         </p>
     @endif
 
     <p class="kecil" style="margin-top:18px">
         Di iPhone, kalau tombol unduh tidak jalan: tekan lama gambarnya lalu pilih <b>Add to Photos</b>.<br>
-        Kode foto: <b>{{ $kode }}</b>
+        Kode sesi: <b>{{ $kode }}</b>
     </p>
 </div>
 </body>

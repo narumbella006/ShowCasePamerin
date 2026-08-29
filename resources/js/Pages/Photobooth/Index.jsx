@@ -4,6 +4,7 @@ import GuestLayout from '@/Layouts/GuestLayout';
 
 const LEBAR_PRATINJAU = 1280;
 const MUTU_JPEG = 0.92;
+const JEDA_TINJAU = 1300; // ms hasil jepretan ditahan di layar sebelum kembali live
 
 /** Menggambar sumber video secara "cover" ke dalam kotak lubang frame. */
 function gambarPenuhi(ctx, sumber, sw, sh, dx, dy, dw, dh, cermin) {
@@ -29,7 +30,7 @@ function gambarPenuhi(ctx, sumber, sw, sh, dx, dy, dw, dh, cermin) {
     ctx.restore();
 }
 
-export default function PhotoboothIndex({ frame, area, csrf }) {
+export default function PhotoboothIndex({ frame, area, maksFoto = 4, csrf }) {
     const videoRef = useRef(null);
     const kanvasRef = useRef(null);
     const kanvasQrRef = useRef(null);
@@ -37,17 +38,26 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
     const streamRef = useRef(null);
     const rafRef = useRef(0);
     const mundurRef = useRef(null);
-    const hasilRef = useRef(null); // { blob, objectUrl }
+    const jedaRef = useRef(null);
 
-    const [fase, setFase] = useState('memuat'); // memuat | siap | mundur | tinjau
+    const [fase, setFase] = useState('memuat'); // memuat | siap | mundur | jeda
     const [hitung, setHitung] = useState(0);
     const [kilat, setKilat] = useState(false);
     const [cermin, setCermin] = useState(true);
     const [depan, setDepan] = useState(true);
     const [galat, setGalat] = useState('');
     const [sibuk, setSibuk] = useState(false);
-    const [hasilUrl, setHasilUrl] = useState('');
-    const [qr, setQr] = useState(null); // { url, kode }
+    const [koleksi, setKoleksi] = useState([]); // [{ id, blob, url }]
+    const [qr, setQr] = useState(null); // { url, kode, jumlah }
+
+    // Cermin koleksi untuk dibaca handler tanpa membuatnya bergantung pada state
+    // — supaya object URL hanya dibebaskan saat fotonya memang dibuang.
+    const koleksiRef = useRef([]);
+    useEffect(() => {
+        koleksiRef.current = koleksi;
+    }, [koleksi]);
+
+    const penuh = koleksi.length >= maksFoto;
 
     // --- frame -------------------------------------------------------------
     useEffect(() => {
@@ -116,7 +126,8 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
         hentikanKamera();
         cancelAnimationFrame(rafRef.current);
         clearInterval(mundurRef.current);
-        if (hasilRef.current?.objectUrl) URL.revokeObjectURL(hasilRef.current.objectUrl);
+        clearTimeout(jedaRef.current);
+        koleksiRef.current.forEach((f) => URL.revokeObjectURL(f.url));
     }, [hentikanKamera]);
 
     // --- gambar pratinjau --------------------------------------------------
@@ -126,7 +137,7 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
 
             const kanvas = kanvasRef.current;
             const gbr = frameRef.current;
-            if (!kanvas || !gbr || fase === 'tinjau') return;
+            if (!kanvas || !gbr || fase === 'jeda') return;
 
             const ctx = kanvas.getContext('2d');
             const skala = kanvas.width / gbr.naturalWidth;
@@ -174,22 +185,21 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
         }
         ctx.drawImage(gbr, 0, 0);
 
-        // tampilkan hasilnya di kanvas pratinjau
+        // tahan hasilnya sebentar di kanvas supaya pengunjung sempat melihatnya
         const kanvas = kanvasRef.current;
         kanvas.getContext('2d').drawImage(luar, 0, 0, kanvas.width, kanvas.height);
+        setFase('jeda');
+        clearTimeout(jedaRef.current);
+        jedaRef.current = setTimeout(() => setFase('siap'), JEDA_TINJAU);
 
         luar.toBlob((blob) => {
             if (!blob) return;
-            const objectUrl = URL.createObjectURL(blob);
-            hasilRef.current = { blob, objectUrl };
-            setHasilUrl(objectUrl);
+            setKoleksi((k) => [...k, { id: `${Date.now()}-${k.length}`, blob, url: URL.createObjectURL(blob) }]);
         }, 'image/jpeg', MUTU_JPEG);
-
-        setFase('tinjau');
     }, [area, cermin]);
 
     const mulaiJepret = useCallback(() => {
-        if (fase !== 'siap' || galat) return;
+        if (fase !== 'siap' || galat || penuh) return;
 
         setFase('mundur');
         setHitung(3);
@@ -204,34 +214,46 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
                 return n - 1;
             });
         }, 1000);
-    }, [ambilGambar, fase, galat]);
+    }, [ambilGambar, fase, galat, penuh]);
 
-    /** Membuang foto dari memori — tidak ada jejak yang tertinggal. */
-    const ulangi = useCallback(() => {
-        if (hasilRef.current?.objectUrl) URL.revokeObjectURL(hasilRef.current.objectUrl);
-        hasilRef.current = null;
-        setHasilUrl('');
+    /** Membuang satu foto dari sesi — tidak ada jejak yang tertinggal. */
+    const buangFoto = useCallback((id) => {
+        const dibuang = koleksiRef.current.find((f) => f.id === id);
+        if (dibuang) URL.revokeObjectURL(dibuang.url);
+
+        setKoleksi((k) => k.filter((f) => f.id !== id));
+        setQr(null);
+    }, []);
+
+    const mulaiSesiBaru = useCallback(() => {
+        koleksiRef.current.forEach((f) => URL.revokeObjectURL(f.url));
+
+        setKoleksi([]);
         setQr(null);
         setFase('siap');
     }, []);
 
-    const unduh = useCallback(() => {
-        if (!hasilRef.current) return;
-        const a = document.createElement('a');
-        a.href = hasilRef.current.objectUrl;
-        a.download = `photobooth-informatics-${Date.now()}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    }, []);
+    const unduhSemua = useCallback(async () => {
+        const cap = Date.now();
+        for (let i = 0; i < koleksi.length; i += 1) {
+            const a = document.createElement('a');
+            a.href = koleksi[i].url;
+            a.download = `photobooth-informatics-${cap}-${i + 1}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            // jeda kecil: sebagian browser mengabaikan unduhan beruntun tanpa spasi
+            await new Promise((r) => setTimeout(r, 400));
+        }
+    }, [koleksi]);
 
     const buatQr = useCallback(async () => {
-        if (!hasilRef.current || sibuk) return;
+        if (!koleksi.length || sibuk) return;
         setSibuk(true);
         setGalat('');
         try {
             const form = new FormData();
-            form.append('foto', hasilRef.current.blob, 'photobooth.jpg');
+            koleksi.forEach((f, i) => form.append('foto[]', f.blob, `photobooth-${i + 1}.jpg`));
 
             const r = await fetch('/photobooth/jepret', {
                 method: 'POST',
@@ -243,13 +265,13 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
             if (!r.ok || !data.url) throw new Error(data.message || `Gagal mengunggah (HTTP ${r.status})`);
 
             await import('@/lib/qrcode.js');
-            setQr({ url: data.url, kode: data.kode });
+            setQr({ url: data.url, kode: data.kode, jumlah: data.jumlah });
         } catch (e) {
             setGalat(e.message);
         } finally {
             setSibuk(false);
         }
-    }, [csrf, sibuk]);
+    }, [csrf, koleksi, sibuk]);
 
     // QR digambar setelah kanvasnya benar-benar ada di layar
     useEffect(() => {
@@ -267,7 +289,8 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
     }, [qr]);
 
     // --- tampilan ----------------------------------------------------------
-    const tombolUtama = 'inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-50 sm:text-base';
+    const tombol = 'inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-50 sm:text-base';
+    const tombolPutih = `${tombol} border border-neutral-200 bg-white text-neutral-700 shadow-sm hover:border-pcr-300 hover:text-pcr-700`;
 
     return (
         <GuestLayout>
@@ -279,7 +302,7 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
                         Photobooth Informatics
                     </h1>
                     <p className="mt-2 text-sm text-neutral-600">
-                        Berfoto dengan frame acara, lalu unduh langsung atau scan QR-nya pakai HP-mu.
+                        Ambil sampai {maksFoto} foto, lalu unduh semuanya sekaligus atau scan QR-nya pakai HP-mu.
                     </p>
                 </div>
 
@@ -300,6 +323,12 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
                         </div>
                     )}
 
+                    {koleksi.length > 0 && (
+                        <span className="absolute top-4 right-4 rounded-full bg-black/65 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+                            {koleksi.length} / {maksFoto} foto
+                        </span>
+                    )}
+
                     {(fase === 'memuat' || galat) && (
                         <div className="absolute inset-0 grid place-items-center bg-neutral-900/85 p-6 text-center">
                             <p className="max-w-md text-sm leading-relaxed font-medium text-white">
@@ -309,71 +338,91 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
                     )}
                 </div>
 
-                {/* kontrol */}
+                {/* kontrol utama */}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    {fase !== 'tinjau' ? (
-                        <>
+                    <button
+                        type="button"
+                        onClick={mulaiJepret}
+                        disabled={fase !== 'siap' || !!galat || penuh}
+                        className={`${tombol} bg-pcrred-600 text-white hover:bg-pcrred-700`}
+                    >
+                        <span className="h-4 w-4 rounded-full bg-white ring-3 ring-white/40" />
+                        {penuh ? `Sudah ${maksFoto} foto` : koleksi.length ? 'Ambil Foto Lagi' : 'Ambil Foto'}
+                    </button>
+                    <button type="button" onClick={() => setCermin((c) => !c)} className={tombolPutih}>
+                        {cermin ? 'Efek cermin: aktif' : 'Efek cermin: mati'}
+                    </button>
+                    <button type="button" onClick={() => setDepan((d) => !d)} className={tombolPutih}>
+                        Ganti kamera
+                    </button>
+                </div>
+
+                {/* kumpulan foto */}
+                {koleksi.length > 0 && (
+                    <div className="mt-8 rounded-3xl border border-neutral-200 bg-white p-5 shadow-lg">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <h2 className="text-sm font-bold text-neutral-900">
+                                Foto terkumpul ({koleksi.length})
+                            </h2>
                             <button
                                 type="button"
-                                onClick={mulaiJepret}
-                                disabled={fase !== 'siap' || !!galat}
-                                className={`${tombolUtama} bg-pcrred-600 text-white hover:bg-pcrred-700`}
+                                onClick={mulaiSesiBaru}
+                                className="text-xs font-bold text-neutral-500 underline underline-offset-4 hover:text-pcrred-600"
                             >
-                                <span className="h-4 w-4 rounded-full bg-white ring-3 ring-white/40" />
-                                Ambil Foto
+                                Kosongkan
                             </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {koleksi.map((f, i) => (
+                                <div key={f.id} className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
+                                    <img src={f.url} alt={`Foto ${i + 1}`} className="block h-auto w-full" />
+                                    <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">
+                                        {i + 1}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => buangFoto(f.id)}
+                                        aria-label={`Hapus foto ${i + 1}`}
+                                        className="absolute top-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-sm font-bold text-white transition-colors hover:bg-pcrred-600"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => setCermin((c) => !c)}
-                                className={`${tombolUtama} border border-neutral-200 bg-white text-neutral-700 hover:border-pcr-300 hover:text-pcr-700`}
+                                onClick={unduhSemua}
+                                className={`${tombol} bg-pcr-700 text-white hover:bg-pcr-800`}
                             >
-                                {cermin ? 'Efek cermin: aktif' : 'Efek cermin: mati'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDepan((d) => !d)}
-                                className={`${tombolUtama} border border-neutral-200 bg-white text-neutral-700 hover:border-pcr-300 hover:text-pcr-700`}
-                            >
-                                Ganti kamera
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button
-                                type="button"
-                                onClick={unduh}
-                                disabled={!hasilUrl}
-                                className={`${tombolUtama} bg-pcr-700 text-white hover:bg-pcr-800`}
-                            >
-                                ⬇ Unduh Foto
+                                ⬇ Unduh semua ({koleksi.length})
                             </button>
                             <button
                                 type="button"
                                 onClick={buatQr}
-                                disabled={!hasilUrl || sibuk || !!qr}
-                                className={`${tombolUtama} bg-pcrred-600 text-white hover:bg-pcrred-700`}
+                                disabled={sibuk || !!qr}
+                                className={`${tombol} bg-pcrred-600 text-white hover:bg-pcrred-700`}
                             >
-                                {sibuk ? 'Menyiapkan…' : 'Scan QR ke HP'}
+                                {sibuk ? 'Menyiapkan…' : `Scan QR ke HP (${koleksi.length})`}
                             </button>
-                            <button
-                                type="button"
-                                onClick={ulangi}
-                                className={`${tombolUtama} border border-neutral-200 bg-white text-neutral-700 hover:border-pcr-300 hover:text-pcr-700`}
-                            >
-                                ↺ Ulangi
-                            </button>
-                        </>
-                    )}
-                </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* QR */}
                 {qr && (
                     <div className="mt-6 flex flex-col items-center gap-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-lg sm:flex-row sm:items-center sm:justify-center sm:gap-8">
                         <canvas ref={kanvasQrRef} className="h-auto w-56 rounded-2xl sm:w-64" />
                         <div className="max-w-sm text-center sm:text-left">
-                            <p className="text-base font-bold text-neutral-900">Scan pakai kamera HP</p>
+                            <p className="text-base font-bold text-neutral-900">
+                                Scan pakai kamera HP — {qr.jumlah} foto
+                            </p>
                             <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                                Foto akan <b>langsung dihapus dari server</b> begitu selesai kamu unduh, dan
+                                Halaman yang terbuka berisi semua foto sesi ini, lengkap dengan tombol unduh
+                                sekaligus. Foto <b>langsung dihapus dari server</b> begitu selesai diunduh, dan
                                 hilang sendiri setelah 60 menit kalau tidak diunduh.
                             </p>
                             <p className="mt-2 font-mono text-xs break-all text-pcr-700">{qr.url}</p>
@@ -382,7 +431,7 @@ export default function PhotoboothIndex({ frame, area, csrf }) {
                 )}
 
                 <p className="mt-6 text-center text-xs leading-relaxed text-neutral-500">
-                    Foto diproses di perangkat ini. Tombol <b>Unduh</b> tidak mengirim apa pun ke server —
+                    Foto diproses di perangkat ini. Tombol <b>Unduh semua</b> tidak mengirim apa pun ke server —
                     hanya tombol <b>Scan QR</b> yang menitipkan foto sebentar supaya bisa dibuka dari HP.
                 </p>
             </div>

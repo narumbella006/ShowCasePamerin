@@ -1,0 +1,10 @@
+# Dipakai saat deploy lewat `railway up` (unggah dari folder lokal).
+# Tanpa ini .env lokal ikut terkirim dan menimpa konfigurasi produksi.
+.env
+.env.*
+.git
+node_modules
+vendor
+public/build
+storage/logs
+database/*.sqlite

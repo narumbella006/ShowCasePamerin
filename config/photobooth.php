@@ -44,6 +44,12 @@ return [
     'simpan_menit' => (int) env('PHOTOBOOTH_SIMPAN_MENIT', 60),
 
     /*
+    | Berapa foto boleh dikumpulkan dalam satu sesi sebelum diunduh sekaligus.
+    | Dibatasi supaya antrean di stan tetap jalan dan Volume tidak cepat penuh.
+    */
+    'maks_foto' => (int) env('PHOTOBOOTH_MAKS_FOTO', 4),
+
+    /*
     |--------------------------------------------------------------------------
     | Frame dan lubang fotonya
     |--------------------------------------------------------------------------

@@ -34,11 +34,12 @@ Route::name('photobooth.')->group(function () {
         ->name('unggah');
 
     Route::prefix('f/{kode}')
-        ->where(['kode' => '[0-9a-z]{4,16}'])
+        ->where(['kode' => '[0-9a-z]{4,16}', 'indeks' => '[1-9][0-9]?'])
         ->group(function () {
             Route::get('/', [PhotoboothController::class, 'tampil'])->name('tampil');
-            Route::get('gambar', [PhotoboothController::class, 'gambar'])->name('gambar');
-            Route::get('unduh', [PhotoboothController::class, 'unduh'])->name('unduh');
+            Route::get('semua', [PhotoboothController::class, 'semua'])->name('semua');
+            Route::get('g/{indeks}', [PhotoboothController::class, 'gambar'])->name('gambar');
+            Route::get('u/{indeks}', [PhotoboothController::class, 'unduh'])->name('unduh');
         });
 });
 

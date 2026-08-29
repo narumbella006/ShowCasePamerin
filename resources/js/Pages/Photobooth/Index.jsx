@@ -343,6 +343,12 @@ export default function PhotoboothIndex({ frame, area, maksFoto = 4, csrf }) {
                     )}
                 </div>
 
+                {/* Frame acara berbentuk landscape, jadi di HP tegak pratinjaunya jadi
+                    strip tipis. Petunjuk ini cuma muncul di layar kecil. */}
+                <p className="mt-3 text-center text-xs text-neutral-500 sm:hidden">
+                    Putar HP ke posisi mendatar untuk pratinjau yang lebih besar.
+                </p>
+
                 {/* kontrol utama */}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                     <button

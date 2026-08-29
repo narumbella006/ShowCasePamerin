@@ -42,9 +42,18 @@ export default function GuestLayout({ children }) {
                     {/* Pill Kiri: Logo */}
                     <Link
                         href="/"
-                        className="flex shrink-0 items-center justify-center rounded-full bg-white px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-transform hover:scale-105 sm:px-6 sm:py-2.5"
+                        className="flex shrink-0 items-center justify-center rounded-full bg-white px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-transform hover:scale-105 sm:px-6 sm:py-2.5"
                     >
-                        <Logo height={20} />
+                        {/* Dua ukuran karena tinggi logo dipakai sebagai angka, bukan kelas:
+                            di layar kecil versi 20px membuat pil kanan terdorong keluar layar.
+                            Kelas display ditaruh di pembungkus — kalau dioper lewat `className`
+                            komponennya, `hidden` bentrok dengan `inline-flex` bawaan Logo. */}
+                        <span className="sm:hidden">
+                            <Logo height={14} />
+                        </span>
+                        <span className="hidden sm:block">
+                            <Logo height={20} />
+                        </span>
                     </Link>
 
                     {/* Tengah: Navigasi Teks */}
@@ -65,7 +74,23 @@ export default function GuestLayout({ children }) {
                     </nav>
 
                     {/* Pill Kanan: Akun/Login */}
-                    <div className="flex shrink-0 items-center rounded-full bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:p-1.5">
+                    <div className="flex shrink-0 items-center gap-1 rounded-full bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:p-1.5">
+                        {/* Pintasan photobooth khusus layar kecil: navigasi teks di tengah
+                            disembunyikan di bawah md, jadi tanpa ini HP tidak punya jalan
+                            masuk ke halaman photobooth sama sekali. */}
+                        <Link
+                            href="/photobooth"
+                            aria-label="Photobooth"
+                            title="Photobooth"
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-pcr-700 md:hidden"
+                        >
+                            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3 9a2 2 0 012-2h1.5l1-2h7l1 2H18a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <circle cx="12" cy="13" r="3.2" strokeWidth={2.2} />
+                            </svg>
+                        </Link>
+                        <span className="h-5 w-px shrink-0 bg-neutral-200 md:hidden" />
+
                         {user ? (
                             <Link
                                 href={user.role === 'dosen' ? '/dosen/produk' : '/'}

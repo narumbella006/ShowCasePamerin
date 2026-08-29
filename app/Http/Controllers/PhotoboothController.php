@@ -73,7 +73,7 @@ class PhotoboothController extends Controller
     {
         return view('photobooth.unduh', [
             'kode' => $kode,
-            'jumlah' => count($this->pastikanAda($kode)),
+            'indeks' => $this->pastikanAda($kode),
             'bisaZip' => $this->bisaZip(),
         ]);
     }
@@ -103,7 +103,7 @@ class PhotoboothController extends Controller
     /** Seluruh foto satu sesi dalam satu berkas zip. */
     public function semua(string $kode): BinaryFileResponse
     {
-        $foto = $this->pastikanAda($kode);
+        $indeks = $this->pastikanAda($kode);
 
         abort_unless($this->bisaZip(), 404);
 
@@ -113,8 +113,8 @@ class PhotoboothController extends Controller
         $zip = new ZipArchive;
         abort_unless($zip->open($berkasZip, ZipArchive::OVERWRITE) === true, 500, 'Gagal menyiapkan zip.');
 
-        foreach ($foto as $i => $jalur) {
-            $zip->addFile($disk->path($jalur), sprintf('photobooth-%s-%d.jpg', $kode, $i + 1));
+        foreach ($indeks as $i) {
+            $zip->addFile($disk->path($this->berkasKe($kode, $i)), sprintf('photobooth-%s-%d.jpg', $kode, $i));
         }
 
         $zip->close();
@@ -134,26 +134,34 @@ class PhotoboothController extends Controller
     }
 
     /**
-     * Daftar foto satu sesi, terurut. Sesi lama yang cuma satu berkas
-     * (`<kode>.jpg`, dari sebelum ada fitur banyak foto) tetap ikut terbaca.
+     * Nomor foto yang masih ada di satu sesi, terurut.
      *
-     * @return list<string>
+     * Nomornya diambil dari nama berkas (1.jpg -> 1), bukan dari urutan dalam
+     * daftar: foto boleh diunduh satu-satu dan langsung terhapus, jadi tautan
+     * yang sudah tercetak di halaman harus tetap menunjuk foto yang sama.
+     *
+     * Sesi lama yang cuma satu berkas (`<kode>.jpg`, dari sebelum ada fitur
+     * banyak foto) tetap ikut terbaca sebagai foto nomor 1.
+     *
+     * @return list<int>
      */
-    protected function daftarFoto(string $kode): array
+    protected function indeksFoto(string $kode): array
     {
         $disk = Storage::disk('public');
 
-        $foto = collect($disk->files(self::DIREKTORI.'/'.$kode))
+        $indeks = collect($disk->files(self::DIREKTORI.'/'.$kode))
             ->filter(fn (string $berkas) => Str::endsWith($berkas, '.jpg'))
-            ->sortBy(fn (string $berkas) => (int) pathinfo($berkas, PATHINFO_FILENAME))
+            ->map(fn (string $berkas) => (int) pathinfo($berkas, PATHINFO_FILENAME))
+            ->filter(fn (int $i) => $i > 0)
+            ->sort()
             ->values()
             ->all();
 
-        if (! $foto && $disk->exists(self::DIREKTORI.'/'.$kode.'.jpg')) {
-            return [self::DIREKTORI.'/'.$kode.'.jpg'];
+        if (! $indeks && $disk->exists(self::DIREKTORI.'/'.$kode.'.jpg')) {
+            return [1];
         }
 
-        return $foto;
+        return $indeks;
     }
 
     /**
@@ -161,28 +169,43 @@ class PhotoboothController extends Controller
      * jadi keduanya dijawab satu halaman yang menjelaskan sebabnya — jauh lebih
      * berguna buat pengunjung daripada halaman 404 biasa.
      *
-     * @return list<string>
+     * @return list<int>
      */
     protected function pastikanAda(string $kode): array
     {
-        $foto = $this->daftarFoto($kode);
+        $indeks = $this->indeksFoto($kode);
 
-        if (! $foto) {
-            abort(response()->view('photobooth.hilang', [
-                'menit' => (int) config('photobooth.simpan_menit'),
-            ], 404));
+        if (! $indeks) {
+            $this->hilang();
         }
 
-        return $foto;
+        return $indeks;
     }
 
     protected function berkasKe(string $kode, int $indeks): string
     {
-        $foto = $this->pastikanAda($kode);
+        $disk = Storage::disk('public');
 
-        abort_unless(isset($foto[$indeks - 1]), 404);
+        $berkas = self::DIREKTORI.'/'.$kode.'/'.$indeks.'.jpg';
+        if ($disk->exists($berkas)) {
+            return $berkas;
+        }
 
-        return $foto[$indeks - 1];
+        $lama = self::DIREKTORI.'/'.$kode.'.jpg';
+        if ($indeks === 1 && $disk->exists($lama)) {
+            return $lama;
+        }
+
+        // Foto ini sudah diunduh lebih dulu, sementara foto lain di sesi yang
+        // sama mungkin masih ada — penjelasannya tetap sama buat pengunjung.
+        $this->hilang();
+    }
+
+    protected function hilang(): never
+    {
+        abort(response()->view('photobooth.hilang', [
+            'menit' => (int) config('photobooth.simpan_menit'),
+        ], 404));
     }
 
     /**
@@ -238,7 +261,7 @@ class PhotoboothController extends Controller
             $kode = collect(range(1, 7))
                 ->map(fn () => self::ABJAD[random_int(0, strlen(self::ABJAD) - 1)])
                 ->implode('');
-        } while ($this->daftarFoto($kode) !== []);
+        } while ($this->indeksFoto($kode) !== []);
 
         return $kode;
     }

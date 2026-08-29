@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
+    @php($jumlah = count($indeks))
     <title>{{ $jumlah > 1 ? $jumlah.' Foto Photobooth' : 'Foto Photobooth' }}</title>
     {{-- Halaman ini sengaja tidak memakai bundel Inertia/Vite: dibuka pengunjung
          lewat QR di HP, sering dengan sinyal seadanya, jadi cukup HTML polos. --}}
@@ -61,17 +62,17 @@
         </div>
     @endif
 
-    @for ($i = 1; $i <= $jumlah; $i++)
+    @foreach ($indeks as $urutan => $i)
         <div class="kartu">
             @if ($jumlah > 1)
-                <span class="nomor">Foto {{ $i }} dari {{ $jumlah }}</span>
+                <span class="nomor">Foto {{ $urutan + 1 }} dari {{ $jumlah }}</span>
             @endif
-            <img src="{{ route('photobooth.gambar', [$kode, $i]) }}" alt="Hasil foto photobooth {{ $i }}">
+            <img src="{{ route('photobooth.gambar', [$kode, $i]) }}" alt="Hasil foto photobooth {{ $urutan + 1 }}">
             <div style="margin-top:12px">
                 <a class="tombol" href="{{ route('photobooth.unduh', [$kode, $i]) }}">⬇ Unduh foto ini</a>
             </div>
         </div>
-    @endfor
+    @endforeach
 
     @if (config('photobooth.hapus_setelah_unduh'))
         <p class="ingat">

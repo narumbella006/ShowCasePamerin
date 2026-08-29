@@ -36,6 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // (app.js, dll) ke-generate sebagai http:// dan diblokir browser
         // sebagai mixed content saat halamannya dibuka lewat https://.
         $middleware->trustProxies(at: '*');
+
+        // Unggahan photobooth datang dari aplikasi di laptop panitia, bukan dari
+        // browser dengan sesi — jadi tidak punya token CSRF. Gantinya dijaga
+        // header X-Photobooth-Token.
+        $middleware->validateCsrfTokens(except: ['photobooth/unggah']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

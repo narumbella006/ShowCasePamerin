@@ -9,6 +9,7 @@ use App\Http\Controllers\Dosen\ProductController as DosenProductController;
 use App\Http\Controllers\Dosen\ProfileController;
 use App\Http\Controllers\Guest\HomeController;
 use App\Http\Controllers\Guest\ProductController;
+use App\Http\Controllers\PhotoboothController;
 use Illuminate\Support\Facades\Route;
 
 Route::name('guest.')->group(function () {
@@ -16,6 +17,22 @@ Route::name('guest.')->group(function () {
     Route::get('/produk/{product}', [ProductController::class, 'show'])->name('products.show');
 });
 require __DIR__.'/auth.php';
+
+// Titipan hasil photobooth acara. Aktif hanya kalau PHOTOBOOTH_TOKEN diisi.
+// Jalur unduh sengaja pendek supaya QR-nya rapat dan gampang di-scan.
+Route::name('photobooth.')->group(function () {
+    Route::post('photobooth/unggah', [PhotoboothController::class, 'unggah'])
+        ->middleware('throttle:60,1')
+        ->name('unggah');
+
+    Route::prefix('f/{kode}')
+        ->where(['kode' => '[0-9a-z]{4,16}'])
+        ->group(function () {
+            Route::get('/', [PhotoboothController::class, 'tampil'])->name('tampil');
+            Route::get('gambar', [PhotoboothController::class, 'gambar'])->name('gambar');
+            Route::get('unduh', [PhotoboothController::class, 'unduh'])->name('unduh');
+        });
+});
 
 Route::middleware(['auth', 'dosen'])
     ->prefix('dosen')

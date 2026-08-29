@@ -21,6 +21,14 @@ require __DIR__.'/auth.php';
 // Titipan hasil photobooth acara. Aktif hanya kalau PHOTOBOOTH_TOKEN diisi.
 // Jalur unduh sengaja pendek supaya QR-nya rapat dan gampang di-scan.
 Route::name('photobooth.')->group(function () {
+    Route::get('photobooth', [PhotoboothController::class, 'halaman'])->name('index');
+
+    // Jepretan dari halaman photobooth (dijaga CSRF sesi browser).
+    Route::post('photobooth/jepret', [PhotoboothController::class, 'jepret'])
+        ->middleware('throttle:30,1')
+        ->name('jepret');
+
+    // Titipan dari aplikasi photobooth di laptop panitia (dijaga token).
     Route::post('photobooth/unggah', [PhotoboothController::class, 'unggah'])
         ->middleware('throttle:60,1')
         ->name('unggah');

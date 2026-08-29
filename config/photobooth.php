@@ -43,4 +43,32 @@ return [
 
     'simpan_menit' => (int) env('PHOTOBOOTH_SIMPAN_MENIT', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Frame dan lubang fotonya
+    |--------------------------------------------------------------------------
+    |
+    | Frame PNG asli (6000x3375, 10 MB) dikecilkan ke WebP 2600x1463 mutu 95 —
+    | 425 KB dengan transparansi tetap utuh. Kamera digambar di belakangnya,
+    | sehingga Spiderman yang menjorok ke area foto tetap tampil di atas.
+    |
+    | `area` adalah letak lubang foto dalam pecahan lebar/tinggi frame (bukan
+    | piksel), jadi ikut menyesuaikan kalau frame-nya nanti diganti ukuran.
+    |
+    */
+
+    // Sengaja TIDAK di public/photobooth/: `php artisan serve` (dipakai Railway)
+    // melayani berkas statis lebih dulu, jadi folder bernama sama akan menutup
+    // route /photobooth dan halamannya balas 404.
+    'frame' => 'aset/frame-photobooth.webp',
+
+    'frame_versi' => '1',
+
+    'area' => [
+        'x' => 0.071538,
+        'y' => 0.034860,
+        'w' => 0.858846,
+        'h' => 0.709501,
+    ],
+
 ];

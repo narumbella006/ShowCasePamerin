@@ -55,6 +55,13 @@ export default function GuestLayout({ children }) {
                         <a href="/#produk" onClick={goToProduk} className={`text-sm font-bold transition-colors ${navTextColor}`}>
                             Produk
                         </a>
+                        <Link href="/photobooth" className={`inline-flex items-center gap-1.5 text-sm font-bold transition-colors ${navTextColor}`}>
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3 9a2 2 0 012-2h1.5l1-2h7l1 2H18a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <circle cx="12" cy="13" r="3.2" strokeWidth={2.2} />
+                            </svg>
+                            Photobooth
+                        </Link>
                     </nav>
 
                     {/* Pill Kanan: Akun/Login */}

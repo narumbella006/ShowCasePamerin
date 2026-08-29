@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -25,9 +28,36 @@ class PhotoboothController extends Controller
     /** Huruf/angka yang tidak ambigu saat dibaca manusia. */
     protected const ABJAD = '23456789abcdefghjkmnpqrstuvwxyz';
 
+    /** Halaman photobooth yang dipakai pengunjung di stan. */
+    public function halaman(): InertiaResponse
+    {
+        return Inertia::render('Photobooth/Index', [
+            'frame' => asset(config('photobooth.frame')).'?v='.config('photobooth.frame_versi'),
+            'area' => config('photobooth.area'),
+            'csrf' => csrf_token(),
+        ]);
+    }
+
+    /**
+     * Jepretan dari halaman photobooth. Dipanggil browser pengunjung sendiri,
+     * jadi cukup dijaga CSRF bawaan Laravel — tanpa token, karena token tidak
+     * mungkin ditaruh di JavaScript yang bisa dibaca siapa saja.
+     */
+    public function jepret(Request $request): JsonResponse
+    {
+        return response()->json([
+            'ok' => true,
+            ...$this->simpanFoto($this->validasiFoto($request)),
+        ]);
+    }
+
+    /**
+     * Titipan dari aplikasi photobooth di laptop panitia. Tidak punya sesi
+     * browser, jadi dijaga token rahasia.
+     */
     public function unggah(Request $request): JsonResponse
     {
-        $this->pastikanAktif();
+        abort_if(blank(config('photobooth.token')), 404);
 
         abort_unless(
             hash_equals((string) config('photobooth.token'), (string) $request->header('X-Photobooth-Token')),
@@ -35,20 +65,32 @@ class PhotoboothController extends Controller
             'Token photobooth tidak cocok.',
         );
 
+        return response()->json([
+            'ok' => true,
+            ...$this->simpanFoto($this->validasiFoto($request)),
+        ]);
+    }
+
+    protected function validasiFoto(Request $request): UploadedFile
+    {
         $request->validate([
             'foto' => ['required', 'file', 'image', 'mimes:jpg,jpeg', 'max:'.config('photobooth.maks_kb')],
         ]);
 
+        return $request->file('foto');
+    }
+
+    /**
+     * @return array{kode: string, url: string}
+     */
+    protected function simpanFoto(UploadedFile $foto): array
+    {
         $kode = $this->kodeBaru();
-        $request->file('foto')->storeAs(self::DIREKTORI, $kode.'.jpg', 'public');
+        $foto->storeAs(self::DIREKTORI, $kode.'.jpg', 'public');
 
         $this->bersihkanFotoLama();
 
-        return response()->json([
-            'ok' => true,
-            'kode' => $kode,
-            'url' => route('photobooth.tampil', $kode),
-        ]);
+        return ['kode' => $kode, 'url' => route('photobooth.tampil', $kode)];
     }
 
     public function tampil(string $kode): View
@@ -89,12 +131,6 @@ class PhotoboothController extends Controller
         return self::DIREKTORI.'/'.$kode.'.jpg';
     }
 
-    /** Fitur mati selama PHOTOBOOTH_TOKEN belum diisi di environment. */
-    protected function pastikanAktif(): void
-    {
-        abort_if(blank(config('photobooth.token')), 404);
-    }
-
     /**
      * Foto yang sudah diunduh dan foto kedaluwarsa sama-sama sudah tidak ada,
      * jadi keduanya dijawab satu halaman yang menjelaskan sebabnya — jauh lebih
@@ -102,8 +138,6 @@ class PhotoboothController extends Controller
      */
     protected function pastikanAda(string $kode): void
     {
-        $this->pastikanAktif();
-
         if (! Storage::disk('public')->exists($this->berkas($kode))) {
             abort(response()->view('photobooth.hilang', [
                 'menit' => (int) config('photobooth.simpan_menit'),
